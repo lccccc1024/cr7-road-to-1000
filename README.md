@@ -2,6 +2,8 @@
 
 Cristiano Ronaldo 千球里程碑实时进度追踪页。统计其成年队正式比赛生涯进球，距 1000 球的实时进度。
 
+**在线访问：https://cr7.950922.xyz/**（GitHub Pages 托管 + 自定义域名）
+
 ## 功能
 
 - 大字号进球计数 + 进度条（刻度 500/700/800/900/1000）
@@ -14,6 +16,7 @@ Cristiano Ronaldo 千球里程碑实时进度追踪页。统计其成年队正�
 - 纯静态 HTML/CSS/JS，无构建步骤，GitHub Pages 直接部署
 - 数据源：`data.js`（仓库即数据库）
 - 自动同步：`.github/workflows/auto-sync.yml` + `sync-goals.js`
+- 自定义域名：`cr7.950922.xyz`（DNS CNAME → `lccccc1024.github.io`）
 
 ## 如何更新数据
 
