@@ -1,6 +1,12 @@
 const STORAGE_KEY = "cr7_goals_data_v3";
 const GOAL_TARGET = 1000;
 
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 let state = loadState();
 let shownTotal = 0;
 
@@ -55,7 +61,7 @@ function renderBreakdown() {
     const row = document.createElement("div");
     row.className = "bd-row";
     row.innerHTML = `
-      <div class="bd-team">${b.team}<small>${b.years}</small></div>
+      <div class="bd-team">${esc(b.team)}<small>${esc(b.years)}</small></div>
       <div class="bd-bar"><i></i></div>
       <div class="bd-pct">${p.toFixed(1)}%</div>
       <div class="bd-pct">${b.goals}</div>`;
@@ -75,9 +81,9 @@ function renderLog(animate) {
     const li = document.createElement("li");
     li.innerHTML = `
       <span class="gl-no">#${g.no}</span>
-      <span class="gl-date">${g.date}</span>
-      <span class="gl-match">${g.match}</span>
-      <span class="gl-type">${g.type}</span>`;
+      <span class="gl-date">${esc(g.date)}</span>
+      <span class="gl-match">${esc(g.match)}</span>
+      <span class="gl-type">${esc(g.type)}</span>`;
     list.appendChild(li);
     if (animate) li.style.animationDelay = (i * 60) + "ms";
   });
@@ -221,6 +227,8 @@ async function fetchLatest() {
               setFetchStatus("已自动更新：" + n + " 球（来源 " + src.name + "）", "ok");
             } else if (n >= state.total) {
               setFetchStatus("与当前一致（" + n + " 球，" + src.name + "）", "ok");
+            } else {
+              setFetchStatus("来源数字偏旧（" + n + "），如果手动 +1 过请以本地为准", "err");
             }
             return;
           }

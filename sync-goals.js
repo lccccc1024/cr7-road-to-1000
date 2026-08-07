@@ -70,6 +70,11 @@ function loadData() {
 function writeData(obj) {
   const out = "const CR7_DATA = " + JSON.stringify(obj, null, 2) + ";\n";
   fs.writeFileSync(FILE, out, "utf8");
+  try {
+    new Function(fs.readFileSync(FILE, "utf8"));
+  } catch (e) {
+    throw new Error("written data.js is not valid JS: " + e.message);
+  }
   console.log("[sync] data.js updated");
 }
 
