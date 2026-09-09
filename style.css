@@ -234,7 +234,6 @@ main {
   transition: width 1s ease;
 }
 
-.bd-count { font-family: "Bebas Neue", sans-serif; font-size: 22px; text-align: right; }
 .bd-pct { color: var(--muted); font-size: 12px; text-align: right; font-family: "Bebas Neue", sans-serif; }
 
 .milestones { display: flex; flex-direction: column; gap: 10px; }
