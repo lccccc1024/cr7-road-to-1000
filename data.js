@@ -28,7 +28,7 @@ const CR7_DATA = {
     {
       "team": "利雅得胜利",
       "code": "NAS",
-      "goals": 129,
+      "goals": 131,
       "years": "2023–至今"
     },
     {
@@ -45,6 +45,18 @@ const CR7_DATA = {
     }
   ],
   "recentGoals": [
+    {
+      "no": 978,
+      "date": "2026-08-28",
+      "match": "利雅得胜利 vs 阿尔泰",
+      "type": "进球"
+    },
+    {
+      "no": 977,
+      "date": "2026-08-21",
+      "match": "利雅得胜利 vs 阿尔菲斯",
+      "type": "进球"
+    },
     {
       "no": 976,
       "date": "2026-07-02",
