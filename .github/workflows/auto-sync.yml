@@ -1,34 +1,72 @@
 name: auto-sync-goal-data
 
 on:
+  push:
+  pull_request:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: cr7-pages-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  sync:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+      - run: node --test
 
+  publish:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Sync goals
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: node sync-goals.js
-
+      - name: Verify publish checkout and synced data
+        run: node --test
       - name: Commit if changed
         run: |
           git add data.js
           if git diff --cached --quiet; then
-            echo "data.js unchanged"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: sync CR7 goal data"
-          git push
+          git push origin HEAD:${{ github.event.repository.default_branch }}
+      - uses: actions/configure-pages@v5
+      - name: Stage website
+        run: |
+          mkdir -p _site
+          cp index.html style.css app.js data.js CNAME _site/
+          cp -R assets _site/
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

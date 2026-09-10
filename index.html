@@ -9,71 +9,65 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg-glow"></div>
+<a class="skip-link" href="#overview">跳到进球数据</a>
 
 <header class="topbar">
-  <div class="logo">CR<span>7</span></div>
-  <div class="topbar-title">千球之路 · ROAD TO 1000</div>
-  <div id="dataBadge" class="badge hidden">本地更新数据</div>
+  <a class="brand" href="#overview" aria-label="CR7 千球之路首页"><span class="logo">CR7</span><span class="brand-caption">THE ROAD<br>TO GREATNESS</span></a>
+  <nav aria-label="页面导航"><a href="#overview">总览</a><a href="#career">生涯数据</a><a href="#recent">最近进球</a></nav>
+  <span class="edition"><i></i> ROAD TO 1,000</span>
+  <div id="dataBadge" class="badge hidden">本地记录</div>
 </header>
 
 <main>
-  <section class="hero">
-    <h1 class="hero-kicker">官方生涯进球 · 历史第一人</h1>
-    <div class="hero-number">
-      <span id="totalGoals">0</span>
-      <span class="hero-total">/ 1000</span>
+  <section class="hero" id="overview" aria-labelledby="heroTitle">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="status-dot"></span> CRISTIANO RONALDO <span class="divider">/</span> 生涯进球追踪</p>
+      <h1 id="heroTitle">每一球，<br>都在创造<span>历史。</span></h1>
+      <div class="hero-score"><div class="hero-number"><span id="totalGoals">978</span><span class="hero-total">/ 1,000</span></div><span class="score-caption">CAREER GOALS<br>成年队正式比赛进球</span></div>
+      <p class="hero-sub">距离千球，还差 <strong id="goalsToGo">22</strong> 球。<span id="etaText">预计 <span id="eta">2027 年初</span> 达成</span></p>
+      <div class="progress-wrap">
+        <div class="progress-top"><span>通往 1,000 球</span><strong id="percent">97.8%</strong></div>
+        <div class="progress" id="progressBar" role="progressbar" aria-label="千球进度" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="978"><div class="progress-mark" id="progressMark"></div><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-labels"><span>0</span><span>500</span><span>700</span><span>800</span><span>900</span><span>1000</span></div>
+      </div>
     </div>
-    <p class="hero-sub">
-      距千球里程碑还差 <strong id="goalsToGo">22</strong> 球
-      <span class="dot">·</span>
-      预计 <span id="eta">2027 年初</span> 达成
-    </p>
+    <div class="hero-art"><span class="art-number" aria-hidden="true">7</span><div class="photo-frame" id="heroPhoto"><img src="assets/ronaldo.webp" alt="克里斯蒂亚诺·罗纳尔多身穿葡萄牙国家队球衣" width="500" height="750" fetchpriority="high"></div><div class="art-caption"><span>CRISTIANO<br><b>RONALDO</b></span><span class="player-number">07</span></div><span class="art-side">PORTUGAL · FORWARD · SINCE 2002</span></div>
   </section>
 
-  <section class="progress-wrap">
-    <div class="progress-labels">
-      <span>0</span><span>500</span><span>700</span><span>800</span><span>900</span><span>1000</span>
-    </div>
-    <div class="progress">
-      <div class="progress-mark" id="progressMark"></div>
-      <div class="progress-fill" id="progressFill"></div>
-    </div>
-    <div class="progress-percent">已完成 <strong id="percent">97.8%</strong></div>
+  <section class="stats" aria-label="生涯统计">
+    <div class="stat-card"><span class="stat-value" id="statGoals">978</span><span class="stat-label">生涯进球 <small>GOALS</small></span></div>
+    <div class="stat-card"><span class="stat-value" id="statApps">1330</span><span class="stat-label">出场 <small>APPEARANCES</small></span></div>
+    <div class="stat-card"><span class="stat-value" id="statGpg">0.73</span><span class="stat-label">场均进球 <small>PER GAME</small></span></div>
+    <div class="stat-card"><span class="stat-value" id="statAssists">291</span><span class="stat-label">助攻 <small>ASSISTS</small></span></div>
   </section>
 
-  <section class="stats">
-    <div class="stat-card"><span class="stat-value" id="statGoals">978</span><span class="stat-label">生涯进球</span></div>
-    <div class="stat-card"><span class="stat-value" id="statApps">1330</span><span class="stat-label">出场</span></div>
-    <div class="stat-card"><span class="stat-value" id="statGpg">0.73</span><span class="stat-label">场均进球</span></div>
-    <div class="stat-card"><span class="stat-value" id="statAssists">291</span><span class="stat-label">助攻</span></div>
-  </section>
-
-  <section class="panel">
-    <h2>进球分布</h2>
+  <p class="stats-note">出场、助攻及场均进球为截至 <span id="statsDate">2026-09-04</span> 的快照，不随进球同步更新。</p>
+  <div class="data-grid" id="career">
+  <section class="panel distribution">
+    <div class="section-head"><div><p class="eyebrow">01 / THE CAREER</p><h2>进球，遍布每一站。</h2></div><span class="section-meta">俱乐部 & 国家队</span></div>
     <div id="breakdown" class="breakdown"></div>
   </section>
 
-  <section class="panel">
-    <h2>里程碑</h2>
+  <section class="panel recent" id="recent"><div class="section-head"><div><p class="eyebrow">02 / THE LATEST</p><h2>进球还在继续。</h2></div><span class="section-meta">最近 8 球</span></div><ul id="goalLog" class="goal-log"></ul></section>
+</div>
+  <section class="panel journey">
+    <div class="section-head"><div><p class="eyebrow">03 / THE MILESTONES</p><h2>传奇，一步一个脚印。</h2></div><span class="section-meta">THE JOURNEY TO 1,000</span></div>
     <div class="milestones">
-      <div class="milestone done"><div class="ms-num">500</div><div class="ms-info"><b>2016年2月</b>· 皇马 vs 西班牙人</div></div>
-      <div class="milestone done"><div class="ms-num">700</div><div class="ms-info"><b>2020年11月</b>· 葡萄牙 vs 瑞典</div></div>
+      <div class="milestone done"><div class="ms-num">500</div><div class="ms-info"><b>2015年9月</b>· 皇马 vs 马尔默</div></div>
+      <div class="milestone done"><div class="ms-num">700</div><div class="ms-info"><b>2019年10月</b>· 葡萄牙 vs 乌克兰</div></div>
       <div class="milestone done"><div class="ms-num">800</div><div class="ms-info"><b>2021年12月</b>· 曼联 vs 阿森纳</div></div>
       <div class="milestone done"><div class="ms-num">900</div><div class="ms-info"><b>2024年9月</b>· 葡萄牙 vs 克罗地亚</div></div>
-      <div class="milestone next"><div class="ms-num">1000</div><div class="ms-info"><b>进行中</b>· 还差 <span id="msToGo">22</span> 球</div></div>
+      <div class="milestone next" id="thousandMilestone"><div class="ms-num">1000</div><div class="ms-info"><b id="milestoneStatus">进行中</b>· 还差 <span id="msToGo">22</span> 球</div></div>
     </div>
   </section>
 
-  <section class="panel">
-    <h2>最近进球</h2>
-    <ul id="goalLog" class="goal-log"></ul>
-  </section>
 
+
+  <p id="storageStatus" role="status"></p>
   <section class="panel admin" id="adminPanel">
-    <h2>记录新进球</h2>
+    <div class="section-head"><div><p class="eyebrow">YOUR MATCHDAY NOTES</p><h2>见证新的一球。</h2></div><span class="section-meta">仅保存于本浏览器</span></div>
     <div class="admin-row">
-      <select id="teamSelect">
+      <select id="teamSelect" aria-label="进球队伍">
         <option value="Al-Nassr">利雅得胜利</option>
         <option value="Portugal">葡萄牙</option>
         <option value="Real Madrid">皇家马德里</option>
@@ -81,27 +75,29 @@
         <option value="Juventus">尤文图斯</option>
         <option value="Sporting CP">葡萄牙体育</option>
       </select>
-      <input id="matchInput" type="text" placeholder="对手（如：吉达联合）">
-      <select id="typeSelect">
+      <input aria-label="对手" id="matchInput" type="text" placeholder="对手（如：吉达联合）">
+      <select id="typeSelect" aria-label="进球类型">
         <option value="进球">进球</option>
         <option value="点球">点球</option>
         <option value="任意球">任意球</option>
         <option value="头球">头球</option>
       </select>
-      <button id="addBtn">+1 记录</button>
+      <button id="addBtn">记录进球 +1</button>
     </div>
     <div class="admin-note">
-      进球数保存在浏览器本地（localStorage），数据文件默认值为 978。重置：<button id="resetBtn" class="link-btn">恢复默认数据</button>
+      仓库数据更新后，本地记录将重置。<button id="resetBtn" class="link-btn">恢复默认数据</button>
     </div>
     <div class="admin-row auto-row">
-      <button id="fetchBtn" class="fetch-btn">自动抓取最新数据</button>
-      <span id="fetchStatus" class="fetch-status">数据由仓库定时任务每 6 小时自动更新；此按钮可立即手动抓取校验</span>
+      <button id="fetchBtn" class="fetch-btn">校验来源总数</button>
+      <span role="status" id="fetchStatus" class="fetch-status">数据由仓库定时任务每 6 小时自动更新；此按钮仅校验来源总数，不修改展示数据</span>
     </div>
   </section>
 </main>
 
 <footer>
-  <span>数据更新于 <span id="updatedAt">2026-09-04</span> · 官方成年队正式比赛进球 · 仅供球迷参考</span>
+  <p>数据来源：<a href="https://theroadto1000goals.com/">Road to 1,000</a> · <a href="https://goalnigeria.com/ronaldo-total-goals-career/">Goal Nigeria</a></p>
+  <span>数据更新于 <span id="updatedAt">2026-09-04</span> · 成年队正式比赛进球 · 非官方统计，仅供球迷参考</span>
+<p class="photo-credit">Photo: <a href="https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo_2018.jpg">Anna Nessi / soccer.ru</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a> · 画面裁切</p>
 </footer>
 
 <script src="data.js"></script>

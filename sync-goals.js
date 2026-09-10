@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const TARGET = 1000;
 const FILE = path.join(__dirname, "data.js");
 const CSV_URL = "https://theroadto1000goals.com/ronaldo_goals.csv";
 const TOTAL_URL = "https://theroadto1000goals.com/";
@@ -22,41 +21,48 @@ const TYPE_MAP = {
   "free kick": "任意球"
 };
 
-function parseCsvLine(line) {
-  const fields = [];
-  let cur = "";
-  let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (inQ) {
-      if (c === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') { cur += '"'; i++; }
-        else inQ = false;
-      } else cur += c;
-    } else {
-      if (c === '"') inQ = true;
-      else if (c === ",") { fields.push(cur); cur = ""; }
-      else cur += c;
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = "", quoted = false, closed = false;
+  text = text.replace(/^\uFEFF/, "");
+  const pushField = () => { row.push(field); field = ""; closed = false; };
+  const pushRow = () => { pushField(); if (row.some(v => v.trim())) rows.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') { quoted = false; closed = true; }
+      else field += c;
+    } else if (c === ',') pushField();
+    else if (c === '\n' || c === '\r') { pushRow(); if (c === '\r' && text[i + 1] === '\n') i++; }
+    else if (c === '"' && !field && !closed) quoted = true;
+    else {
+      if (closed || c === '"') throw new Error("Malformed CSV quoting");
+      field += c;
     }
   }
-  fields.push(cur);
-  return fields;
-}
-
-function parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]);
-  return lines.slice(1).map(line => {
-    const vals = parseCsvLine(line);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] || ""; });
-    return obj;
+  if (quoted) throw new Error("Unclosed CSV quote");
+  if (field || row.length || closed) pushRow();
+  if (rows.length < 2) throw new Error("CSV has no goal records");
+  const headers = rows.shift().map(h => h.trim());
+  if (new Set(headers).size !== headers.length) throw new Error("Duplicate CSV headers");
+  for (const key of ["goal_number", "date", "club", "opponent", "goal_type"]) {
+    if (!headers.includes(key)) throw new Error("Missing CSV column: " + key);
+  }
+  return rows.map(values => {
+    if (values.length !== headers.length) throw new Error("CSV column count mismatch");
+    return Object.fromEntries(headers.map((key, i) => [key, values[i].trim()]));
   });
 }
 
+function validDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + "T00:00:00Z");
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 function plausible(n) {
-  return typeof n === "number" && n >= 900 && n < TARGET;
+  return Number.isSafeInteger(n) && n >= 900 && n <= 10000;
 }
 
 function today() {
@@ -78,25 +84,26 @@ async function fetchText(url) {
   }
 }
 
-async function getLatestTotal() {
+async function getLatestTotal(minimum = 900, expected, read = fetchText) {
+  const acceptable = n => plausible(n) && n >= minimum && (expected === undefined || n === expected);
   try {
-    const html = await fetchText(TOTAL_URL);
-    const m = html.match(/data-goal="total">\s*(\d{3,4})\s*</);
+    const html = await read(TOTAL_URL);
+    const m = html.match(/data-goal="total">\s*(\d{3,5})\s*</);
     if (m) {
       const n = parseInt(m[1]);
       console.log(`[sync] total from theroadto1000goals.com -> ${n}`);
-      if (plausible(n)) return n;
+      if (acceptable(n)) return n;
     }
   } catch (e) {
     console.log(`[sync] total fetch failed: ${e.message}`);
   }
   try {
-    const html = await fetchText("https://goalnigeria.com/ronaldo-total-goals-career/");
-    const m = html.match(/(\d{3,4})\s*official senior career goals/i);
+    const html = await read("https://goalnigeria.com/ronaldo-total-goals-career/");
+    const m = html.match(/(\d{3,5})\s*official senior career goals/i);
     if (m) {
       const n = parseInt(m[1]);
       console.log(`[sync] total from goalnigeria.com -> ${n}`);
-      if (plausible(n)) return n;
+      if (acceptable(n)) return n;
     }
   } catch (e) {
     console.log(`[sync] goalnigeria failed: ${e.message}`);
@@ -104,19 +111,18 @@ async function getLatestTotal() {
   return null;
 }
 
-async function getGoalDetails() {
+async function getGoalDetails(read = fetchText) {
   try {
-    const csv = await fetchText(CSV_URL);
+    const csv = await read(CSV_URL);
     const goals = parseCsv(csv);
     console.log(`[sync] CSV loaded: ${goals.length} goals`);
     return goals
-      .filter(g => g.goal_number && g.club)
       .map(g => ({
-        no: parseInt(g.goal_number),
-        date: g.date || "",
+        no: Number(g.goal_number),
+        date: g.date,
         club: g.club,
-        opponent: g.opponent || "",
-        goal_type: g.goal_type || "open play",
+        opponent: g.opponent,
+        goal_type: g.goal_type,
         venue: g.venue || ""
       }))
       .sort((a, b) => a.no - b.no);
@@ -130,24 +136,25 @@ function loadData() {
   const code = fs.readFileSync(FILE, "utf8");
   const m = code.match(/CR7_DATA\s*=\s*(\{[\s\S]*?\})\s*;/);
   if (!m) throw new Error("cannot find CR7_DATA in data.js");
-  return new Function("return " + m[1])();
+  return JSON.parse(m[1]);
 }
 
 function writeData(obj) {
   const out = "const CR7_DATA = " + JSON.stringify(obj, null, 2) + ";\n";
-  fs.writeFileSync(FILE, out, "utf8");
+  const temporary = FILE + ".tmp";
   try {
-    new Function(fs.readFileSync(FILE, "utf8"));
-  } catch (e) {
-    throw new Error("written data.js is not valid JS: " + e.message);
+    fs.writeFileSync(temporary, out, "utf8");
+    fs.renameSync(temporary, FILE);
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
   }
-  console.log("[sync] data.js written & validated");
+  console.log("[sync] data.js written");
 }
 
 function buildBreakdown(goals) {
-  const counts = {};
+  const counts = Object.create(null);
   for (const g of goals) {
-    const cn = CLUB_MAP[g.club] || g.club;
+    const cn = Object.hasOwn(CLUB_MAP, g.club) ? CLUB_MAP[g.club] : g.club;
     counts[cn] = (counts[cn] || 0) + 1;
   }
   const YEARS = {
@@ -163,7 +170,7 @@ function buildBreakdown(goals) {
     .map(([team, g]) => ({
       team,
       goals: g,
-      years: YEARS[team] || ""
+      years: Object.hasOwn(YEARS, team) ? YEARS[team] : ""
     }));
 }
 
@@ -171,40 +178,39 @@ function buildRecentGoals(goals, count) {
   return goals.slice(-count).reverse().map(g => ({
     no: g.no,
     date: g.date,
-    match: `${CLUB_MAP[g.club] || g.club} vs ${g.opponent}`,
-    type: TYPE_MAP[g.goal_type] || "进球"
+    match: `${Object.hasOwn(CLUB_MAP, g.club) ? CLUB_MAP[g.club] : g.club} vs ${g.opponent}`,
+    type: Object.hasOwn(TYPE_MAP, g.goal_type) ? TYPE_MAP[g.goal_type] : g.goal_type
   }));
 }
 
-async function main() {
-  const [latest, allGoals] = await Promise.all([getLatestTotal(), getGoalDetails()]);
-  if (latest === null) {
-    console.log("[sync] no usable total -> no change");
-    process.exit(0);
+function reconcile(data, latest, allGoals) {
+  if (!plausible(latest)) throw new Error("No usable total from any source");
+  if (latest < data.total) throw new Error("Source total is older than repository data");
+  if (!Array.isArray(allGoals) || allGoals.length !== latest ||
+      allGoals.some((g, i) => !g || g.no !== i + 1 || typeof g.club !== "string" || !g.club.trim() ||
+        !validDate(g.date) || typeof g.opponent !== "string" || !g.opponent.trim() ||
+        typeof g.goal_type !== "string" || !g.goal_type.trim())) {
+    throw new Error("CSV must contain complete, valid details and one ordered record per goal; data unchanged");
   }
-  const data = loadData();
-  if (latest <= data.total) {
-    console.log(`[sync] already at ${data.total}, no change`);
-    process.exit(0);
-  }
-
-  const old = data.total;
-  data.total = latest;
-  data.updatedAt = today();
-
-  if (allGoals && allGoals.length >= latest) {
-    data.breakdown = buildBreakdown(allGoals);
-    data.recentGoals = buildRecentGoals(allGoals, 9);
-    console.log(`[sync] breakdown & recentGoals rebuilt from CSV (${allGoals.length} goals)`);
-  } else {
-    console.log("[sync] CSV unavailable, only total updated");
-  }
-
-  writeData(data);
-  console.log(`[sync] goals updated: ${old} -> ${latest}`);
+  const next = { ...data, total: latest, breakdown: buildBreakdown(allGoals), recentGoals: buildRecentGoals(allGoals, 9) };
+  if (JSON.stringify(next) === JSON.stringify(data)) return null;
+  next.updatedAt = today();
+  return next;
 }
 
-main().catch(e => {
+async function main() {
+  const data = loadData();
+  const allGoals = await getGoalDetails();
+  if (!allGoals) throw new Error("No usable goal details; data unchanged");
+  const latest = await getLatestTotal(data.total, allGoals.length);
+  const next = reconcile(data, latest, allGoals);
+  if (next && process.argv.includes("--dry-run")) console.log("[sync] dry run: valid update available, no files written");
+  else if (next) writeData(next);
+  else console.log("[sync] data unchanged");
+}
+
+if (require.main === module) main().catch(e => {
   console.error("[sync] error:", e);
-  process.exit(1);
+  process.exitCode = 1;
 });
+module.exports = { plausible, reconcile, parseCsv, getLatestTotal, getGoalDetails, validDate };

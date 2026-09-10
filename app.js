@@ -7,22 +7,44 @@ function esc(s) {
   }[c]));
 }
 
+let localMode = false;
+let storageWarning = "";
 let state = loadState();
 let shownTotal = 0;
+let numberAnimation = 0;
+
+function validState(s) {
+  return s && Number.isSafeInteger(s.total) && s.total >= 0 && s.total <= 10000 &&
+    Array.isArray(s.breakdown) && s.breakdown.length > 0 && s.breakdown.every(b =>
+      b && typeof b.team === "string" && typeof b.years === "string" && Number.isSafeInteger(b.goals) && b.goals >= 0) &&
+    s.breakdown.reduce((sum, b) => sum + b.goals, 0) === s.total &&
+    Array.isArray(s.recentGoals) && s.recentGoals.every(g => g && Number.isSafeInteger(g.no) && g.no > 0 && g.no <= s.total &&
+      [g.date, g.match, g.type].every(v => typeof v === "string")) &&
+    [s.updatedAt, s.etaNote].every(v => typeof v === "string") &&
+    [s.appearances, s.assists, s.goalsPerGame].every(Number.isFinite);
+}
 
 function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const s = JSON.parse(raw);
-      if (typeof s.total === "number" && s.recentGoals && s.breakdown && s.total >= 0 && s.total <= 1000) return s;
-    } catch (e) {}
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved && saved.base === JSON.stringify(CR7_DATA) && validState(saved.data)) {
+      localMode = true;
+      return saved.data;
+    }
+  } catch (e) {
+    storageWarning = "本地存储不可用或缓存损坏；已加载仓库数据。";
   }
   return structuredClone(CR7_DATA);
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localMode = true;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ base: JSON.stringify(CR7_DATA), data: state }));
+    storageWarning = "";
+  } catch (e) {
+    storageWarning = "无法保存到浏览器，当前记录刷新后将丢失。";
+  }
 }
 
 function pct() {
@@ -34,9 +56,12 @@ function toGo() {
 }
 
 function animateNum(el, from, to) {
+  const generation = ++numberAnimation;
   const dur = 900;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = to; return; }
   const start = performance.now();
   function step(now) {
+    if (generation !== numberAnimation) return;
     const t = Math.min(1, (now - start) / dur);
     const e = 1 - Math.pow(1 - t, 3);
     el.textContent = Math.round(from + (to - from) * e);
@@ -57,7 +82,7 @@ function renderBreakdown() {
   const wrap = document.getElementById("breakdown");
   wrap.innerHTML = "";
   state.breakdown.forEach(b => {
-    const p = (b.goals / state.total) * 100;
+    const p = state.total ? (b.goals / state.total) * 100 : 0;
     const row = document.createElement("div");
     row.className = "bd-row";
     row.innerHTML = `
@@ -69,7 +94,7 @@ function renderBreakdown() {
   });
   requestAnimationFrame(() => {
     wrap.querySelectorAll(".bd-bar i").forEach((bar, i) => {
-      bar.style.width = ((state.breakdown[i].goals / state.total) * 100) + "%";
+      bar.style.width = (state.total ? (state.breakdown[i].goals / state.total) * 100 : 0) + "%";
     });
   });
 }
@@ -101,7 +126,14 @@ function renderTexts() {
   document.getElementById("updatedAt").textContent = state.updatedAt;
 
   const badge = document.getElementById("dataBadge");
-  if (localStorage.getItem(STORAGE_KEY)) badge.classList.remove("hidden");
+  document.getElementById("storageStatus").textContent = storageWarning;
+  document.getElementById("statsDate").textContent = CR7_DATA.statsUpdatedAt || "未知日期";
+  const reached = state.total >= GOAL_TARGET;
+  document.getElementById("etaText").hidden = reached;
+  document.getElementById("milestoneStatus").textContent = reached ? "已达成" : "进行中";
+  document.getElementById("thousandMilestone").className = "milestone " + (reached ? "done" : "next");
+  document.getElementById("progressBar").setAttribute("aria-valuenow", Math.min(state.total, GOAL_TARGET));
+  if (localMode) badge.classList.remove("hidden");
   else badge.classList.add("hidden");
 }
 
@@ -125,16 +157,22 @@ const TEAM_NAMES = {
   "Sporting CP": "葡萄牙体育"
 };
 
+function localDate(date = new Date()) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
 function addGoal() {
   const teamCode = document.getElementById("teamSelect").value;
   const match = document.getElementById("matchInput").value.trim();
   const type = document.getElementById("typeSelect").value;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const teamName = TEAM_NAMES[teamCode] || teamCode;
 
+  if (state.total >= 10000) return;
   state.total += 1;
   const b = state.breakdown.find(x => x.team === teamName);
   if (b) b.goals += 1;
+  else state.breakdown.push({ team: teamName, goals: 1, years: "" });
 
   state.recentGoals.unshift({
     no: state.total,
@@ -149,7 +187,9 @@ function addGoal() {
 }
 
 function resetData() {
-  localStorage.removeItem(STORAGE_KEY);
+  try { localStorage.removeItem(STORAGE_KEY); storageWarning = ""; }
+  catch (e) { storageWarning = "无法清除本地存储；当前已恢复仓库数据。"; }
+  localMode = false;
   state = structuredClone(CR7_DATA);
   shownTotal = 0;
 
@@ -175,7 +215,7 @@ const FETCH_SOURCES = [
     name: "theroadto1000goals.com",
     url: "https://theroadto1000goals.com/",
     parse: html => {
-      const m = html.match(/data-goal="total">\s*(\d{3,4})\s*</);
+      const m = html.match(/data-goal="total">\s*(\d{3,5})\s*</);
       return m ? parseInt(m[1]) : null;
     }
   },
@@ -183,7 +223,7 @@ const FETCH_SOURCES = [
     name: "goalnigeria.com",
     url: "https://goalnigeria.com/ronaldo-total-goals-career/",
     parse: html => {
-      const m = html.match(/(\d{3,4})\s*official senior career goals/i);
+      const m = html.match(/(\d{3,5})\s*official senior career goals/i);
       return m ? parseInt(m[1]) : null;
     }
   }
@@ -196,7 +236,7 @@ function setFetchStatus(text, cls) {
 }
 
 function plausible(n) {
-  return typeof n === "number" && n >= 900 && n < GOAL_TARGET;
+  return Number.isSafeInteger(n) && n >= 900 && n <= 10000;
 }
 
 let fetching = false;
@@ -206,36 +246,31 @@ async function fetchLatest() {
   fetching = true;
   const btn = document.getElementById("fetchBtn");
   btn.disabled = true;
+  let staleStatus = "";
   try {
-    for (const src of FETCH_SOURCES) {
+    sources: for (const src of FETCH_SOURCES) {
       for (const p of PROXIES) {
         setFetchStatus("正在尝试 " + src.name + "（" + p.label + "）…");
+        let timer;
         try {
           const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 8000);
+          timer = setTimeout(() => ctrl.abort(), 8000);
           const res = await fetch(p.wrap(src.url), { signal: ctrl.signal });
-          clearTimeout(timer);
           if (!res.ok) continue;
           const html = await res.text();
           const n = src.parse(html);
           if (plausible(n)) {
-            if (n > state.total) {
-              state.total = n;
-              state.updatedAt = new Date().toISOString().slice(0, 10);
-              saveState();
-              renderAll(true);
-              setFetchStatus("已自动更新：" + n + " 球（来源 " + src.name + "）", "ok");
-            } else if (n >= state.total) {
-              setFetchStatus("与当前一致（" + n + " 球，" + src.name + "）", "ok");
-            } else {
-              setFetchStatus("来源数字偏旧（" + n + "），如果手动 +1 过请以本地为准", "err");
+            if (n < state.total) {
+              staleStatus = "来源数字偏旧（" + n + " 球，" + src.name + "）；当前展示 " + state.total + " 球。";
+              continue sources;
             }
+            setFetchStatus("来源校验：" + n + " 球（" + src.name + "）；当前展示 " + state.total + " 球。完整数据由仓库同步后更新。", n === state.total ? "ok" : "err");
             return;
           }
-        } catch (e) {}
+        } catch (e) {} finally { clearTimeout(timer); }
       }
     }
-    setFetchStatus("抓取失败：所有来源均不可达（网络/反爬限制）", "err");
+    setFetchStatus(staleStatus || "校验失败：所有来源均未返回可用总数（网络或页面格式异常）", "err");
   } finally {
     fetching = false;
     btn.disabled = false;
