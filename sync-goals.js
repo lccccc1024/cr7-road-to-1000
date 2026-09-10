@@ -132,11 +132,15 @@ async function getGoalDetails(read = fetchText) {
   }
 }
 
-function loadData() {
-  const code = fs.readFileSync(FILE, "utf8");
-  const m = code.match(/CR7_DATA\s*=\s*(\{[\s\S]*?\})\s*;/);
-  if (!m) throw new Error("cannot find CR7_DATA in data.js");
+function parseData(code) {
+  // Match the complete declaration; punctuation inside JSON strings is data.
+  const m = code.match(/^\s*const\s+CR7_DATA\s*=\s*([\s\S]+);\s*$/);
+  if (!m) throw new Error("Expected one CR7_DATA declaration in data.js");
   return JSON.parse(m[1]);
+}
+
+function loadData() {
+  return parseData(fs.readFileSync(FILE, "utf8"));
 }
 
 function writeData(obj) {
@@ -213,4 +217,4 @@ if (require.main === module) main().catch(e => {
   console.error("[sync] error:", e);
   process.exitCode = 1;
 });
-module.exports = { plausible, reconcile, parseCsv, getLatestTotal, getGoalDetails, validDate };
+module.exports = { plausible, reconcile, parseCsv, getLatestTotal, getGoalDetails, validDate, parseData };

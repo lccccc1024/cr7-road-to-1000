@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const { plausible, reconcile, parseCsv, getLatestTotal, getGoalDetails, validDate } = require('./sync-goals');
+const { plausible, reconcile, parseCsv, getLatestTotal, getGoalDetails, validDate, parseData } = require('./sync-goals');
 // Deliberately independent of the live data.js snapshot.
 const base = { total: 978, appearances: 1330, assists: 291, goalsPerGame: 0.73,
   updatedAt: '2026-09-04', etaNote: '2027', statsUpdatedAt: '2026-09-04',
@@ -153,4 +153,22 @@ test('browser source check tries secondary after a stale primary', async () => {
   assert.equal(calls.length, 2);
   assert.match(b.elements.get('fetchStatus').textContent, /979/);
   assert.equal(b.run('state.total'), 978);
+});
+
+
+test('data declaration parsing preserves punctuation inside source strings', () => {
+  const data = structuredClone(base);
+  data.recentGoals[0].match = 'Example }; opponent with "quotes"';
+  assert.deepEqual(parseData('const CR7_DATA = ' + JSON.stringify(data) + ';\n'), data);
+  assert.throws(() => parseData('const CR7_DATA = {}; doSomething();'));
+});
+
+test('page dependencies are present in the deployment package', () => {
+  const html = fs.readFileSync('index.html', 'utf8');
+  for (const [, asset] of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
+    if (/^https?:/.test(asset)) continue;
+    assert.equal(fs.existsSync(asset), true, 'Missing local asset: ' + asset);
+  }
+  const workflow = fs.readFileSync('.github/workflows/auto-sync.yml', 'utf8');
+  assert.match(workflow, /cp -R assets _site\//);
 });
