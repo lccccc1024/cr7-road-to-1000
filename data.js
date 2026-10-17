@@ -1,10 +1,10 @@
 const CR7_DATA = {
-  "total": 980,
+  "total": 981,
   "appearances": 1330,
   "assists": 291,
   "goalsPerGame": 0.73,
   "statsUpdatedAt": "2026-09-04",
-  "updatedAt": "2026-10-09",
+  "updatedAt": "2026-10-17",
   "etaNote": "2027 年初",
   "breakdown": [
     {
@@ -24,7 +24,7 @@ const CR7_DATA = {
     },
     {
       "team": "利雅得胜利",
-      "goals": 133,
+      "goals": 134,
       "years": "2023–至今"
     },
     {
@@ -39,6 +39,12 @@ const CR7_DATA = {
     }
   ],
   "recentGoals": [
+    {
+      "no": 981,
+      "date": "2026-10-12",
+      "match": "利雅得胜利 vs Neftchi Fergana",
+      "type": "进球"
+    },
     {
       "no": 980,
       "date": "2026-10-09",
@@ -86,12 +92,6 @@ const CR7_DATA = {
       "date": "2026-05-21",
       "match": "利雅得胜利 vs Damac FC",
       "type": "进球"
-    },
-    {
-      "no": 972,
-      "date": "2026-05-21",
-      "match": "利雅得胜利 vs Damac FC",
-      "type": "任意球"
     }
   ]
 };
