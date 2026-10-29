@@ -1,10 +1,10 @@
 const CR7_DATA = {
-  "total": 982,
+  "total": 985,
   "appearances": 1330,
   "assists": 291,
   "goalsPerGame": 0.73,
   "statsUpdatedAt": "2026-09-04",
-  "updatedAt": "2026-10-23",
+  "updatedAt": "2026-10-29",
   "etaNote": "2027 年初",
   "breakdown": [
     {
@@ -24,7 +24,7 @@ const CR7_DATA = {
     },
     {
       "team": "利雅得胜利",
-      "goals": 135,
+      "goals": 138,
       "years": "2023–至今"
     },
     {
@@ -39,6 +39,24 @@ const CR7_DATA = {
     }
   ],
   "recentGoals": [
+    {
+      "no": 985,
+      "date": "2026-10-29",
+      "match": "利雅得胜利 vs Al-Kholood",
+      "type": "进球"
+    },
+    {
+      "no": 984,
+      "date": "2026-10-29",
+      "match": "利雅得胜利 vs Al-Kholood",
+      "type": "头球"
+    },
+    {
+      "no": 983,
+      "date": "2026-10-29",
+      "match": "利雅得胜利 vs Al-Kholood",
+      "type": "进球"
+    },
     {
       "no": 982,
       "date": "2026-10-23",
@@ -73,24 +91,6 @@ const CR7_DATA = {
       "no": 977,
       "date": "2026-08-21",
       "match": "利雅得胜利 vs Al-Riyadh",
-      "type": "进球"
-    },
-    {
-      "no": 976,
-      "date": "2026-07-02",
-      "match": "葡萄牙 vs Croatia",
-      "type": "点球"
-    },
-    {
-      "no": 975,
-      "date": "2026-06-23",
-      "match": "葡萄牙 vs Uzbekistan",
-      "type": "进球"
-    },
-    {
-      "no": 974,
-      "date": "2026-06-23",
-      "match": "葡萄牙 vs Uzbekistan",
       "type": "进球"
     }
   ]
